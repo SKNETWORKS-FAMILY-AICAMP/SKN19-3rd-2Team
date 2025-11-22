@@ -8,13 +8,16 @@ import os
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
-from .state import (
+from state import (
     PatentResult,
     PatentSearchRecord,
-    IPCResult,
-    IPCRequestRecord,
+    IPCCodeInput,
+    IPCDetailInfo,
+    IPCKeywordInput,
+    IPCMainDescription,
     OtherNoteRecord
 )
+from app.ipc_func import get_ipc_detail_data_from_code,search_ipc_with_query
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -44,7 +47,6 @@ def decide_max_keywords(text: str) -> int:
 
 # 1) LLM 기반 키워드 추출 툴
 
-@tool
 def tool_extract_core_keywords(
     tech_text: str,
     max_keywords: Optional[int] = None,
@@ -169,67 +171,43 @@ def tool_search_patent(
 
 
 
-# 3) 기술 설명 → IPC 추천 툴 (스텁)
+# 3) 기술 설명 → IPC 추천 툴
 
-@tool
-def tool_search_ipc_for_tech(
-    tech_text: str,
+@tool(args_schema=IPCKeywordInput)
+def tool_search_ipc_code_with_description(
+    tech_texts: List[str],
     top_k: int = 5,
-) -> IPCRequestRecord:
+) -> IPCMainDescription:
     """
-    [스텁 버전]
-    - 기술 설명(초록, 청구항, 키워드 등)을 바탕으로
-      유사한 IPC 코드를 추천하는 용도.
-
-    나중에:
-    - tech_text -> 임베딩
-    - IPC 임베딩 DB에서 유사한 코드 top_k 검색
-    - IPCResult 리스트로 반환
+    어떤 아이디어나 청구항의 내용에 대해 관계가 있는 IPC 코드들과 설명을 제시합니다.
+    사용자가 아이디어나 청구항을 입력하거나 사용자의 아이디어의 키워드들에 관해 기입해야하거나 관련한 내용이 필요할때 사용하세요.
+    tech_texts에 입력으로 넣어줄때에는 반드시 독립적 기술단위로 분해하여 영어로 번역하여 입력해주세요.
+    예를들면 ['Organic Light Emitting Display with Pixel Electrode Contact Structure']의 형태가 아니라 ['Organic Light Emitting Display','Display Panel Opening Area','Pixel Electrode Contact Structure']처럼 기술단위로 분해해서 리스트로 입력해주세요.
     """
-
-    fake_results: List[IPCResult] = []
-
-    record: IPCRequestRecord = {
-        "id": f"ipc_{uuid4().hex[:8]}",
-        "mode": "tech_to_ipc",
-        "input_text": tech_text,
-        "codes": [],
-        "top_k": top_k,
-        "results": fake_results,
-    }
-
-    return record
+    result = search_ipc_with_query(tech_texts,top_k)
+    return IPCMainDescription(**result)
 
 
 
 
-# 4) IPC 코드 설명 툴 (스텁)
-
-@tool
-def tool_describe_ipc_codes(
-    ipc_codes: List[str],
-) -> IPCRequestRecord:
+# 4) IPC 코드 설명 툴
+@tool(args_schema=IPCCodeInput)
+def tool_search_ipc_description_from_code(codes: List[str]) -> List[IPCDetailInfo]:
     """
-    [스텁 버전]
-    - 주어진 IPC 코드 리스트에 대해 IPC DB에서 제목/설명을 찾아오는 용도.
-
-    나중에:
-    - 각 code에 대해 DB lookup
-    - title/description을 IPCResult로 구성
+    IPC 코드 리스트를 입력받아 각 코드에 대한 상세 설명명과 코드의 계층, 해당 코드들의 상위 코드들에 대한 결과를 반환합니다.
+    사용자가 특정 분류 코드의 의미를 물어보거나, IPC 코드의 전반적인 정보를 파악해야 하거나, 코드들 사이의 상위 관계나 계층을 파악해야 할 때 사용하세요.
     """
-
-    fake_results: List[IPCResult] = []
-
-    record: IPCRequestRecord = {
-        "id": f"ipc_{uuid4().hex[:8]}",
-        "mode": "code_explain",
-        "input_text": None,
-        "codes": ipc_codes,
-        "top_k": len(ipc_codes),
-        "results": fake_results,
-    }
-
-    return record
+    
+    # 1. 기존 함수 호출
+    raw_results = get_ipc_detail_data_from_code(codes)
+    
+    # 2. 결과 검증 및 Pydantic 객체로 변환
+    # (딕셔너리 리스트를 Pydantic 객체 리스트로 변환하여 LLM에게 전달)
+    parsed_results = []
+    for item in raw_results:
+        # Pydantic 모델을 이용해 데이터 검증 및 포장
+        parsed_results.append(IPCDetailInfo(**item))
+    return parsed_results
 
 
 
