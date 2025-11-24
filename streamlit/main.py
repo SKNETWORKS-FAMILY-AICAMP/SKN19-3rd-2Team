@@ -13,7 +13,7 @@ from total_tools import (
     tool_search_ipc_code_with_description,
     tool_search_ipc_description_from_code,
     tool_search_patent_with_description,
-    tool_get_patent_by_id,
+    tool_search_detail_patent_by_id,
 )
 
 # ==========================================
@@ -205,7 +205,7 @@ tools = [
     tool_search_patent_with_description,
     tool_search_ipc_code_with_description,
     tool_search_ipc_description_from_code,
-    tool_get_patent_by_id,
+    tool_search_detail_patent_by_id,
 ]
 
 llm = ChatOpenAI(
