@@ -35,7 +35,7 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 ## 2.3 프로젝트 필요성
 ### 청구항이란?
 - 특허출원의 가장 핵심적인 부분으로서, 출원인이 **보호받고자 하는 사항**, 즉 독점권을 요구하는 **권리범위**를 기재한 것 (법 42조4항 본문)
-- 청구범위에 기재되지 아니한 발명은 특허권으로서 보호받을 수 없다!
+- 청구범위에 기재되지 아니한 발명은 특허권으로서 보호받을 수 없음
 - 청구항 예시
  <img width="1171" height="637" alt="image" src="https://github.com/user-attachments/assets/fbc8f2d2-db0e-4dcb-88cb-54064aa51f0b" />
 
@@ -68,7 +68,7 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 
   <img width="600" height="197" alt="image" src="https://github.com/user-attachments/assets/a374b167-52c0-4e51-92c7-5b92fcba931a" />
 
-- 그 핵심 기술인 **컴퓨터 비전:기계가 시각적 세계를 이해하고 해석하도록 학습시키는 인공지능의 한 분야** 관련 특허
+- 그 핵심 기술인 **컴퓨터 비전(기계가 시각적 세계를 이해하고 해석하도록 학습시키는 인공지능의 한 분야)** 관련 특허
 
 ---
 
@@ -123,7 +123,7 @@ SKN19-3RD-2TEAM/
 ---
 
 # 4. WBS
-<img width="959" height="794" alt="image" src="https://github.com/user-attachments/assets/283dfca1-422c-4e87-8cc7-b38f5acf44e6" />
+<img width="621" height="643" alt="image" src="https://github.com/user-attachments/assets/c7173dfb-8465-4266-a591-c2806a201c5a" />
 
 
 ---
@@ -143,9 +143,8 @@ SKN19-3RD-2TEAM/
 ## 비기능 요구사항
 | ID | 구분 | 내용 | 목표치 | 비고 |
 | --- | --- | --- | --- | --- |
-| NFR-01 | 성능 | 사용자 요청 후 **전체 응답 시간은 10초 이내**여야 한다 | ≤ 10초 | 평균 기준 |
-| NFR-02 | 가용성 | Tool 호출 및 DB 검색이 안정적으로 수행되어야 한다 |  |  |
-| NFR-03 | 정확성 | LLM은 검색된 결과 외의 근거를 생성하면 안 된다 | Must | hallucination 방지 |
+| NFR-01 | 가용성 | Tool 호출 및 DB 검색이 안정적으로 수행되어야 한다 |  |  |
+| NFR-02 | 정확성 | LLM은 검색된 결과 외의 근거를 생성하면 안 된다 | Must | hallucination 방지 |
 
 ---
 
@@ -250,7 +249,22 @@ https://github.com/SKN19-3rd-4th-2team/SKN19-3rd-2team/blob/main/app/total_tools
 ---
 
 # 9. 수행 결과
-(프로젝트 시연 캡처 이미지 첨부)
+- 시작 화면
+
+  <img width="1883" height="831" alt="image" src="https://github.com/user-attachments/assets/f29c580c-983c-41fc-824c-85c0e6ca11ad" />
+
+- 질문 시: 어느 tool 사용하는지 로딩
+
+  <img width="691" height="213" alt="image" src="https://github.com/user-attachments/assets/e494b198-2fef-4354-80fd-a0157520560a" />
+
+
+- 질문에 대한 답변
+  
+  <img width="1150" height="518" alt="image" src="https://github.com/user-attachments/assets/51e096b3-f003-4583-9bcf-b58cbd6bc5fd" />
+
+  ...
+  
+  <img width="1520" height="566" alt="image" src="https://github.com/user-attachments/assets/4f13dd25-9547-41fb-9faf-3f0dc52c5e3e" />
 
 ---
 
@@ -495,7 +509,7 @@ top_k = 30으로 검색했을 때,
 
 ---
 # 13.  한줄회고
-(취합)
+
 <table style="width:100%, table-layout: fixed;">
 
 <tr>
