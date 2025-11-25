@@ -90,30 +90,29 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 SKN19-3RD-2TEAM/
 │
 ├─ app/
-
-│   ├─ **init**.py
-│   ├─ app-test.ipynb
-│   ├─ doc_func.py
-│   ├─ ipc_func.py
-│   ├─ [main.py](http://main.py/)
-│   ├─ total_schemas.py
-│   └─ total_tools.py
 │
 ├─ db_search/
-│   ├─ final.ipynb
-│   ├─ load_and_use.ipynb
-│   ├─ load_use.ipynb
-│   └─ search_optimizing.ipynb
+│   ├─ doc_db/
+│   └─ ipc_db/
 │
 ├─ doc/
 │   ├─ data/
+│   │  ├─ preprocessed_data/
+│   │  └─ raw_data/
 │   ├─ llm/
 │   └─ rag/
+│   │  ├─ preprocessing/
+│   │  ├─ embedding/
+│   │  └─ search_upgrade/
 │
 ├─ ipc/
 │   ├─ data/
+│   │  ├─ preprocessed_data/
+│   │  └─ raw_data/
 │   ├─ llm/
 │   └─ rag/
+│ 
+├─ streamlit/
 │
 ├─ .env
 ├─ .gitignore
@@ -236,7 +235,6 @@ SKN19-3RD-2TEAM/
 
 
 #### DB 연동 구현 코드 (링크)
-- (github 정리 후 링크 첨부)
 
 - ChromaDB 구축 코드 - 청구항 DB
 https://github.com/SKN19-3rd-4th-2team/SKN19-3rd-2team/blob/main/db_search/fixed_final.ipynb
