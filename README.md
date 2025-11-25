@@ -340,7 +340,23 @@ top_k = 30으로 검색했을 때,
 
 ---
 
-# 11. 챗봇 테스트 & 개선 노력
+# 11. 테스트 계획표
+
+| Test Case | 검증 항목 | 관련 기능/도구 |
+|-----------|-----------|----------------|
+| TC-1 | 단일 Tool 선택 및 기본 유사 특허 검색 동작 | 전체 Tool 세트 |
+| TC-2 | IPC 설명 Tool 호출 시 DB 기반 설명 / 임의 생성 방지 | IPC 설명 Tool + System Prompt |
+| TC-3 | 멀티 Tool 호출 (유사 특허 + IPC 후보 + IPC 코드 설명 동시 처리) | 전체 Tool 세트 |
+| TC-4 | 후속 요청 기반 재검색·재구성 (결과 번호 제외/재추천) | 특허 검색 Tool + Schemas + Description |
+| TC-5 | 출원번호 단건 조회 + 메타데이터/청구항 조회 | 출원번호 조회 Tool + Schemas + Description |
+| TC-6 | 존재하지 않는 출원번호 조회 시 예외 처리 | 출원번호 조회 Tool + System Prompt |
+| TC-7 | 정제되지 않은 자연어 입력 처리 및 의도 파악 | LLM + 특허 검색 Tool, IPC 후보 Tool |
+| TC-8 | 모델별 응답 시간·성능 비교 (gpt-5.1 vs gpt-4o) | 전체 chat system |
+
+
+---
+
+# 12. 테스트 결과 보고서
 
 ## **[TC-1] 단일 요청에서 적절한 Tool 선택 여부**
 
@@ -350,15 +366,16 @@ top_k = 30으로 검색했을 때,
 
 ### 관련 기능
 
-- tool_search_patent_with_description
-- tool_search_ipc_code_with_description
-- tool_search_detail_patent_by_id
+- `tool_search_patent_with_description`
+- `tool_search_ipc_code_with_description`
+- `tool_search_detail_patent_by_id`
 
 ### 입력 예시
-
+```
 "전방 카메라로 보행자 행동을 인식해서 위험도를 점수로 계산하는
 
 자율주행 보조 기능을 구상 중이야. 비슷한 특허 5개만 찾아줘."
+```
 
 ### 기대 동작
 
@@ -367,11 +384,13 @@ top_k = 30으로 검색했을 때,
 
 ### 실제 동작
 
-![스크린샷 2025-11-25 185616.png](attachment:92af5b80-bd80-4570-ba8d-fa0ce06bb530:스크린샷_2025-11-25_185616.png)
+<img width="372" height="249" alt="Image" src="https://github.com/user-attachments/assets/fdc5ec6e-84bb-454c-9c60-814bf872d0e5" />
 
-### 검증 포인트
+### 테스트 결과
 
-[PASS] "유사 특허 검색" 의도일 때, 불필요한 Tool 호출 없이 올바른 Tool만 사용. 
+**"유사 특허 검색" 의도일 때, 불필요한 Tool 호출 없이 올바른 Tool만 사용.**
+
+---
 
 ## **[TC-2] Tool 호출 시 실제 DB 검색 여부 및 임의 생성 방지**
 
@@ -383,14 +402,15 @@ LLM이 임의로 특허/IPC 정보를 생성하지 않는지 확인
 
 ### 관련 기능
 
-- tool_search_patent_with_description
-- tool_search_ipc_description_from_code
+- `tool_search_patent_with_description`
+- `tool_search_ipc_description_from_code`
 
 ### 입력 예시
-
+```
 "전방 카메라로 보행자 행동을 인식해서 위험도를 점수로 계산하는
 
 자율주행 보조 기능을 구상 중이야. 이 기술에 어울리는 IPC코드를 3개만 추천해줘."
+```
 
 ### 기대 동작
 
@@ -403,9 +423,11 @@ LLM이 임의로 특허/IPC 정보를 생성하지 않는지 확인
 mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPORTING VEHICLES IN GENERAL CONJOINT CONTROL OF VEHICLE SUB-UNITS OF DIFFERENT TYPE OR DIFFERENT FUNCTION CONTROL SYSTEMS SPECIALLY ADAPTED FOR HYBRID VEHICLES ROAD VEHICLE DRIVE CONTROL SYSTEMS FOR PURPOSES NOT RELATED TO THE CONTROL OF A PARTICULAR SUB-UNIT Purposes of road vehicle drive control systems not related to the control of a particular sub-unit, e.g. of systems using conjoint control of vehicle sub-units Predicting or avoiding probable or impending collision Taking automatic action to avoid collision, e.g. braking and steering'), ... 생략
 ```
 
-### 검증 포인트
+### 테스트 결과
 
-[PASS] Tool 결과 범위 밖의 IPC/특허 정보를 LLM이 지어내지 않음
+**Tool 결과 범위 밖의 IPC/특허 정보를 LLM이 지어내지 않음**
+
+---
 
 ## **[TC-3] 복합 요청에서 다중 Tool 순차 호출 여부**
 
@@ -417,26 +439,28 @@ mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPO
 
 ### 관련 기능
 
-- tool_search_patent_with_description
-- tool_search_ipc_code_with_description
-- tool_search_ipc_description_from_code
+- `tool_search_patent_with_description`
+- `tool_search_ipc_code_with_description`
+- `tool_search_ipc_description_from_code`
 
 ### 입력 예시
 
+```
 "운전자의 시선과 전방 카메라 영상을 함께 써서
 
 졸음운전/주의산만을 감지하는 시스템이야.
 
 1. 비슷한 특허 3개, 2) IPC 후보, 3) IPC 코드별 설명까지 한 번에 정리해 줄래?"
+```
 
 ### 기대 동작
 
 - 특허 검색 Tool → IPC 후보 Tool → IPC 설명 Tool 순으로 2~3회 Tool 호출
 - 최종 답변에서 세 부분이 구조적으로 나뉘어 정리됨
 
-### 실제 동작 요약
+### 실제 동작
 
-![스크린샷 2025-11-25 190325.png](attachment:8eaadf1c-6662-4fcb-953b-89a22d82f55f:스크린샷_2025-11-25_190325.png)
+<img width="373" height="453" alt="Image" src="https://github.com/user-attachments/assets/d5f0a737-efc3-4266-8f9e-d78ba2f8099d" />
 
 ```
 1. 유사 특허 3건 정리  
@@ -478,8 +502,10 @@ mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPO
   - 귀 발명: 차량 내 운전자 카메라와 전방 카메라를 이용하므로 기본적으로 이 그룹에 속한다고 볼 수 있습니다.
 ```
 
-### 검증 포인트
-[PASS] 하나의 요청에 대해 적절한 Tool들을 조합해서 순차 호출하는지 확인
+### 테스트 결과
+**하나의 요청에 대해 적절한 Tool들을 조합해서 순차 호출하는지 확인함**
+
+---
 
 ## **[TC4] 출원번호 단건 조회**
 
@@ -549,6 +575,8 @@ mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPO
 
 ...(생략)
 ```
+
+---
 
 ## **[TC5] 후속 요청에서 제외/재구성 지시**
 
@@ -634,18 +662,218 @@ mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPO
 
 ...(생략)
 ```
+---
+## **[TC6] 존재하지 않는 출원번호 조회 시 처리**
 
+### 테스트 목적
+
+존재하지 않는 출원번호(또는 DB 범위 밖 출원번호)를 조회했을 때,
+
+**임의의 특허 정보를 생성하지 않고**, “DB 내에 없음”을 명확하게 알리는지 검증
+
+### 관련 기능
+
+- `tool_search_detail_patent_by_id`
+- `doc_collection.get(where={"patent_id": ...})`
+
+### 입력 예시
+
+```
+"출원번호 10-2099-9999999에 대해서도 방금처럼 발명의 명칭이랑 IPC, 주요 청구항 몇 개만 요약해서 알려줘."
+```
+
+### 기대 동작
+
+- 출원번호 형식 정규화 후 DB 조회
+- 결과가 없으면 `found=False`로 반환
+- 특허명/IPC/청구항을 **지어내지 않고**,
+    
+    “이 벡터 DB 범위 안에서는 찾을 수 없다”는 안내 + KIPRIS/특허로 등 공식 서비스 추천
+    
+
+### 실제 동작
+
+```
+patent_id='10-2099-9999999' found=False title='' num_claims=0 claims=[]
+```
+
+```
+1. 조회 결과 및 한계 안내  
+- 내부 특허 청구항 DB에서 출원번호 `10-2099-9999999`를 직접 조회한 결과,  
+  `found = False` 로 나와 해당 번호에 대응되는 특허 데이터를 찾지 못했습니다.  
+- 이 DB는 실제 전체 특허 데이터가 아니라, **컴퓨터 비전·전자·모빌리티 중심 서브셋**만 포함하고 있어,  
+  실제로 특허가 존재하더라도 이 DB에 없을 수 있습니다.  
+- 또한 출원연도 “2099”는 현실적으로 아직 도래하지 않은 시점이므로,  
+  번호 자체가 예시이거나 실제 출원번호가 아닐 가능성이 매우 높습니다.
+
+2. 왜 발명의 명칭·IPC·주요 청구항을 못 알려주는지  
+- 현재 시스템은 **“공개된 특허 텍스트 + 우리 내부 서브셋”**에 한해서만 정보를 제공합니다.  
+- 조회 결과가 `found=False`인 경우:
+
+... (생략)
+```
+
+### 테스트 결과
+
+**존재하지 않는 출원번호에 대해 hallucination 없이 안전하게 처리함**
 
 ---
 
-# 12. 프로젝트 개선 방향
+## **[TC7] 정제되지 않은 자연어 입력 처리 (노이즈 견고성)**
+
+### 테스트 목적
+
+말투·노이즈·긴 문장이 섞인 자연어 입력에도
+
+핵심 기술 내용을 추출하고, 적절한 Tool 조합으로 응답하는지 검증
+
+### 관련 기능
+
+- `tool_search_patent_with_description`
+- `tool_search_ipc_code_with_description`
+
+### 입력 예시
+
+```
+"요즘 밤에 너무 더워서 잠도 잘 못 자겠는데 그래도 특허 프로젝트는 해야겠지… ㅎㅎ
+이렇게 더운 밤이니까 갑자기 생각난건데 카메라로 사용자의 얼굴을 찍어서 졸음/피로 상태를 추정하고 음 그리고... 졸음운전 위험이 높다고 판단되면 차량 내부 조명 색, 시트 진동, HUD 경고 아이콘을 동시에 바꿔서 깨워주는 시스템은 어떤것같아? 혹시 이거랑 비슷한 특허가 있으려나? 없어야 대박인데 ㅋㅋ 만약 있으면 5개? 아니 7개 찾아주고 ipc코드도 적당히 찾아주라. 그나저나 왜 더운날엔 이렇게 졸음운전이 급증하는걸까?"
+```
+
+### 기대 동작
+
+- “운전자 졸음 상태 추정”, “차량 내부 시스템 조정”, “졸음운전 위험도 계산” 등 핵심 키워드 추출
+- 유사 특허 검색 Tool + IPC 후보 추천 Tool 순차 호출
+- 결과를 구조화해 **유사 특허 요약 + IPC 후보 + 마지막 요약 섹션**까지 제공
+
+### 실제 동작
+
+<img width="371" height="305" alt="Image" src="https://github.com/user-attachments/assets/f5cb8b5c-5922-43b8-a287-47d5ea561ef8" />
+
+```
+1. 먼저 발명 아이디어 정리  
+- 카메라(DMS)로 운전자의 얼굴·시선을 촬영  
+- 얼굴/눈 깜빡임/머리 자세 등을 분석해 졸음·피로 상태 추정  
+- 졸음운전 위험이 높다고 판단되면,  
+  - 차량 내부 조명 색(앰비언트/실내등) 변경  
+  - 시트 진동 발생  
+  - HUD(Head-Up Display) 경고 아이콘 표시/변경  
+- 위 세 가지를 “동시에, 일종의 멀티모달 경고 시퀀스”로 제어하는 시스템
+
+이걸 기준으로, 유사 특허와 IPC를 정리해 보겠습니다.  
+
+## 1. 유사 특허 검색 결과 (최대 7건)
+
+### 결과 1. 특허 1020230003112  
+- 제목: 딥러닝 기반 컴퓨터 비전 기술을 이용한 영유아 이상 징후 모니터링 시스템  
+- 핵심 청구항 요지  
+  - RGB, ToF(depth), IR를 포함하는 다양한 영상(RGBD)을 카메라로 획득  
+  - 딥러닝 기반 컴퓨터 비전으로 이상 징후(이상 상태)를 모니터링하는 시스템  
+- 아이디어와의 관계 
+
+... (중략)
+
+## 2. 발명에 적합해 보이는 IPC 코드 후보
+
+툴에서 추천된 IPC 중, 귀 아이디어에 실제로 연결될 수 있는 것들을 해석해 보겠습니다.
+
+### (1) G02B 27/01 – Head-up displays  
+- 구조  
+  - G: 물리학(Physics)  
+  - G02: 광학(Optics)  
+  - G02B: 광학 요소·시스템  
+  - G02B 27/01: HUD(헤드업 디스플레이)에 관한 광학 시스템  
+- 발명과의 연관성  
+
+... (중략)
+
+## 3. 이 발명에서 차별화 전략 포인트
+
+도구 결과를 보면,  
+- “운전자 얼굴/시선 기반 DMS”  
+- “졸음/주의산만 판단”  
+- “경고 출력(음성/화면/HUD 등)”  
+은 이미 다수의 특허가 존재합니다.
+
+그래서, 특허로 승부를 보려면 다음 포인트를 명확히 살려야 합니다.
+
+1) **멀티모달 경고의 ‘조합·시나리오’**  
+
+... (중략)
+
+## 4. “왜 더운 날에 졸음운전이 늘까?”에 대한 짧은 과학적 이유
+
+- **체온 조절 부담 증가** 
+	- 더운 환경에선 인체가 체온을 낮추기 위해 계속 에너지를 쓰면서 피로가 빨리 쌓입니다.  
+- **수면의 질 저하**  
+  - 질문에서 언급하신 것처럼, 더운 밤에는 숙면이 잘 안 되고,  
+    - 수면 부족 → 주간 졸림 증가로 이어집니다.
+
+... (생략)
+```
+
+### 테스트 결과
+
+**정제되지 않은 요청에도 핵심 기술 방향을 파악하고, 올바른 Tool 조합과 구조화된 답변을 생성함**
+
+---
+
+## **[TC-8] 응답 시간 및 모델별 성능 비교**
+
+### 테스트 목적  
+  같은 테스트 케이스(TC-1 ~ TC-7)에 대해  
+  `gpt-5.1`과 `gpt-4o`의 **응답 시간(latency)** 차이를 측정하고,  
+  실제 서비스에서 사용할 모델 선택 근거를 정리.
+
+### 관련 기능  
+  - LangGraph ReAct 에이전트 전체 플로우
+  - `tool_search_patent_with_description`
+  - `tool_search_ipc_code_with_description`
+  - `tool_search_ipc_description_from_code`
+  - `tool_search_detail_patent_by_id`
+
+### 측정 방법  
+  - LangSmith 트레이스 기준으로, 각 TC에 대해  
+    - `gpt-5.1`, `gpt-4o` 각각 최소 3회 실행  
+    - **총 응답 시간(LLM + Tool 호출 포함)** 평균값을 기록  
+  - 동일한 입력 프롬프트, 동일한 Tool 구성에서 **모델만 교체**하여 비교
+
+### 결과 요약
+
+| Test Case | 시나리오 설명 | gpt-5.1 Trace | gpt-4o Trace |
+|-----------|----------------|---------------|--------------|
+| TC-1      | 단일 Tool 선택 / 기본 유사 특허 검색 | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/0c577a67-0410-432d-a2d2-abcc0af75466" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/e13aaafe-7ceb-46bc-9193-90d0961b6c02" /> |
+| TC-2      | IPC 설명 Tool 호출 / DB 기반 설명 검증 | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/81d74a6f-dd2d-487e-bda2-6ce770819b51" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/2384375b-ddd2-4f9e-a3ad-80c0b27cf1ac" /> |
+| TC-3      | 멀티 Tool 호출 (유사 특허 + IPC 후보) | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/8fb71c72-ca54-4b2f-bcb7-9f5ed48f062e" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/c3a32f01-5dce-4fdb-9260-6c1add0804a4" /> |
+| TC-4      | 후속 요청 기반 재검색 / 재구성 | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/4829f75e-bd8b-4738-babc-34a08a26e07b" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/455ed0b1-4956-4e68-9198-3243f7e3e2ba" /> |
+| TC-5      | 출원번호 단건 조회 + 메타데이터/청구항 조회 | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/b33edcd1-c54e-449a-af95-a514a032ab80" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/e5598ec1-9207-44c6-880d-43f4b4dd5673" /> |
+| TC-6      | 존재하지 않는 출원번호 조회 | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/e839d373-8f1f-494e-9820-885baee01e7b" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/2f80a8d1-d814-486f-ba08-a77a18558548" /> |
+| TC-7      | 정제되지 않은 자연어 입력 처리 | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/09c75bb4-eafa-40fe-a5f0-2c7550cf857a" /> | <img width="90" height="81" alt="Image" src="https://github.com/user-attachments/assets/2d6d935f-9138-492a-b7c7-0cb0ce72d16e" /> |
+
+
+### 해석 및 결론  
+  - 전반적으로 `gpt-5.1`은 **응답 품질/추론 안정성**이 더 좋지만, 응답 시간이 길어 평균 35초 수준.  
+  - `gpt-4o`는 **응답 시간**이 절반 이하로 줄어들어, 시연 및 실제 사용성 측면에서 유리.  
+  - 이번 프로젝트에서는  
+    - 시연/데모 및 중소기업 실사용 시 **응답 시간 < 20초**를 목표로 하여  
+    - 최종적으로 `gpt-4o`를 서비스용 기본 모델로 선택.  
+  - 다만, 복잡한 후속 요청(재검색/재구성 등)에서는 `gpt-5.1`이 더 안정적인 결과를 보였으므로 **사용자 별 모델을 선택할 수 있는 기능**을 추가하는 것을 구상 중
+
+### 테스트 결과  
+  **각 Test Case에 대해 모델별 응답 시간 차이를 수치로 확인했고,**
+  **시간/품질 트레이드오프를 근거로 최종 모델 선택 기준을 정리함.**
+
+---
+
+# 13. 프로젝트 개선 방향
+- 서비스 사용자가 LLM model을 선택할 수 있는 기능 추가
 - GPT API 대신 오픈 소스 sLLM 사용
 - 특허 분야 확장
 - 거절된 특허 청구항 정보를 활용한 제공 서비스 확장
 - 도면을 사용한 복합적 정보 제공
 
 ---
-# 13.  한줄회고
+
+# 14.  한줄회고
 
 <table style="width:100%, table-layout: fixed;">
 
