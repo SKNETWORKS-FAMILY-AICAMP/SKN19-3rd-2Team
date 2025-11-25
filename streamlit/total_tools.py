@@ -3,6 +3,7 @@ from typing import List, Optional
 from langchain_core.tools import tool
 import os
 import chromadb
+import re
 from chromadb.utils import embedding_functions
 from sentence_transformers import SentenceTransformer
 
@@ -217,6 +218,49 @@ def tool_search_patent_with_description(
 # 2) 출원번호로 특허 검색하기 위한 툴
 # ---------------------------------------------------------
 
+def normalize_korean_patent_id(patent_id: str) -> str:
+    """
+    한국 출원번호 입력을 DB에서 사용하는 형식으로 정규화합니다.
+
+    지원 예시:
+    - '1020050108060'          -> '1020050108060'
+    - '10-2005-0108060'        -> '1020050108060'
+    - '10 2005 0108060'        -> '1020050108060'
+    - '10/2005/0108060'        -> '1020050108060'
+
+    기본 규칙:
+    1) 먼저 'NN-YYYY-NNNNNNN' 패턴을 우선적으로 인식해서 13자리로 맞추고,
+    2) 그 외에는 숫자만 남기고, 13자리면 그대로 사용합니다.
+    3) 그 외 길이/형식은 그대로 반환하거나, 필요하면 빈 문자열을 반환해
+       "DB에 없다" 쪽으로 처리되게 할 수 있습니다.
+    """
+    if not patent_id:
+        return ""
+
+    s = patent_id.strip()
+
+    # 1) 정형 패턴: 2자리 + 구분자 + 4자리 + 구분자 + 5~7자리
+    #    예: '10-2005-0108060', '10 2005 108060', '10/2005/108060'
+    m = re.match(r"^\s*(\d{2})\D+(\d{4})\D+(\d{5,7})\s*$", s)
+    if m:
+        kind = m.group(1)      # 10, 20, 30 등
+        year = m.group(2)      # 2005
+        serial = m.group(3)    # 0108060 또는 108060 같은 것
+        # 일단 7자리로 zero-padding (선행 0이 빠졌을 가능성 고려)
+        serial = serial.zfill(7)
+        return f"{kind}{year}{serial}"
+
+    # 2) 그 외에는 숫자만 남긴다
+    digits = re.sub(r"\D", "", s)
+
+    # 13자리면 이미 우리가 쓰는 형식이라고 보고 그대로 사용
+    if len(digits) == 13:
+        return digits
+
+    # 그 외 길이는 애매하므로 그대로 돌려보내거나
+    # 필요하면 추가 규칙(예: 11자리면 앞에 '10' 붙이기 등)을 추가할 수 있다.
+    return digits
+
 @tool(args_schema=PatentByIdInput)
 def tool_search_detail_patent_by_id(
     patent_id: str,
@@ -224,15 +268,32 @@ def tool_search_detail_patent_by_id(
 ) -> PatentByIdOutput:
     """
     출원번호(또는 patent_id)를 기반으로, 특허 청구항 벡터 DB에서
-    해당 특허에 속한 청구항들을 **직접 조회**하는 툴입니다.
+    해당 특허에 속한 청구항들과 주요 메타데이터를 **직접 조회**하는 툴입니다.
 
     이 툴을 호출해야 하는 상황 (LLM용 가이드):
     - 사용자가
       - "출원번호 1020230112930에 대해서 DB에서 자료 끌어와서 알려줘"
       - "이 출원번호 특허의 청구항들을 보여줘"
       - "위에서 말한 특허 1020...의 청구항 전체를 보고 싶어"
+      - "이 출원번호 특허의 IPC 코드도 같이 알려줘"
       와 같이 **특정 출원번호 하나를 정확히 지정**하고,
-      그 내용(특히 청구항)을 확인하고자 할 때 사용하세요.
+      그 특허의 내용(특히 청구항 및 기본 메타정보)을 확인하고자 할 때 사용하세요.
+
+    이 툴은 청구항 텍스트뿐 아니라 다음 메타데이터도 함께 반환합니다:
+    - title: 발명의 명칭
+    - priority: 우선권/출원 국가 정보 (예: "대한민국")
+    - register: 공개/등록 상태 (예: "공개", "등록")
+    - ipc_raw: 원본 IPC 문자열 (예: "H04M 3/42, H04B 1/40, G06F 17/00, G06Q 30/06")
+    - ipc_codes: ipc_raw를 파싱한 개별 IPC 코드 리스트
+    - link: KIPRIS Plus 등 공보 열람 링크 (텍스트 URL)
+
+    LLM이 이 툴을 사용할 때의 활용 팁:
+    - 사용자가 "IPC 코드도 알려줘", "어느 IPC 분야인지 설명해줘"라고 하면,
+      반드시 ipc_raw / ipc_codes 값을 기반으로 설명하고,
+      임의로 IPC 코드를 만들어내지 마세요.
+    - 필요하다면 ipc_codes 값을 그대로 넘겨
+      IPC 설명 도구(tool_search_ipc_description_from_code)를 연쇄 호출하여
+      코드별 상세 설명과 계층 구조까지 함께 제공할 수 있습니다.
 
     주의 사항:
     - 이 DB는 '컴퓨터 비전/모빌리티' 등 특정 도메인에 한정된 서브셋일 수 있습니다.
@@ -240,14 +301,20 @@ def tool_search_detail_patent_by_id(
       그런 경우에는 found=False와 함께, KIPRIS/특허로 등 외부 서비스를 안내해야 합니다.
     """
     # 1) 입력 출원번호 정규화 (공백 제거 등)
-    normalized_id = patent_id.strip()
+    original_input = patent_id.strip()
+    normalized_id = normalize_korean_patent_id(original_input)
 
+    # 빈 문자열 방어
     if not normalized_id:
-        # 비어있는 입력이 들어오는 경우 방어 코드
         return PatentByIdOutput(
-            patent_id=patent_id,
+            patent_id=original_input,
             found=False,
             title="",
+            priority="",
+            register="",
+            ipc_raw="",
+            ipc_codes=[],
+            link="",
             num_claims=0,
             claims=[],
         )
@@ -268,13 +335,23 @@ def tool_search_detail_patent_by_id(
             patent_id=normalized_id,
             found=False,
             title="",
+            priority="",
+            register="",
+            ipc_raw="",
+            ipc_codes=[],
+            link="",
             num_claims=0,
             claims=[],
         )
 
-    # 3) 메타데이터에서 claim_no, title 추출해서 정리
+    # 3) 메타데이터에서 claim_no, title, priority, register, link, ipc 추출해서 정리
     claim_items = []
+
     title_candidates = []
+    priority_candidates = []
+    register_candidates = []
+    link_candidates = []
+    ipc_candidates = []
 
     for doc_text, meta in zip(docs, metas):
         # claim_no 파싱 (없거나 형식 이상하면 큰 숫자로 처리해서 뒤로 밀기)
@@ -282,12 +359,28 @@ def tool_search_detail_patent_by_id(
         try:
             claim_no = int(raw_claim_no)
         except (TypeError, ValueError):
-            claim_no = 999999
+            claim_no = 999_999
 
-        # title 후보 수집
-        title = meta.get("title", "")
-        if title:
-            title_candidates.append(title)
+        # 공통 메타데이터 후보 수집
+        title_val = meta.get("title", "")
+        if title_val:
+            title_candidates.append(title_val)
+
+        priority_val = meta.get("priority", "")
+        if priority_val:
+            priority_candidates.append(priority_val)
+
+        register_val = meta.get("register", "")
+        if register_val:
+            register_candidates.append(register_val)
+
+        link_val = meta.get("link", "")
+        if link_val:
+            link_candidates.append(link_val)
+
+        ipc_val = meta.get("ipc", "")
+        if ipc_val:
+            ipc_candidates.append(ipc_val)
 
         claim_items.append(
             {
@@ -296,17 +389,43 @@ def tool_search_detail_patent_by_id(
             }
         )
 
-    # 4) claim_no 기준으로 정렬
+    # 4) 대표 메타데이터 선택 함수
+    def pick_first_non_empty(values):
+        for v in values:
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return ""
+
+    title_value = pick_first_non_empty(title_candidates)
+    priority_value = pick_first_non_empty(priority_candidates)
+    register_value = pick_first_non_empty(register_candidates)
+    link_value = pick_first_non_empty(link_candidates)
+    ipc_raw_value = pick_first_non_empty(ipc_candidates)
+
+    # 5) IPC 코드 파싱 (쉼표 기준 분리 + 공백 정리)
+    ipc_codes_list: List[str] = []
+    if ipc_raw_value:
+        # 혹시 세미콜론이 섞여 있어도 처리되도록 통일
+        raw_for_split = ipc_raw_value.replace(";", ",")
+        for part in raw_for_split.split(","):
+            code = part.strip()
+            if not code:
+                continue
+            # 여러 공백 정리 (예: "H04M   3/42")
+            code = " ".join(code.split())
+            ipc_codes_list.append(code)
+
+    # 6) claim_no 기준으로 정렬
     claim_items_sorted = sorted(
         claim_items,
         key=lambda x: x["claim_no"],
     )
 
-    # 5) max_claims 적용 (0이면 전체)
+    # 7) max_claims 적용 (0이면 전체)
     if max_claims > 0:
         claim_items_sorted = claim_items_sorted[:max_claims]
 
-    # 6) Pydantic 모델로 변환
+    # 8) Pydantic 모델로 변환
     claim_models: List[PatentClaimFull] = [
         PatentClaimFull(
             claim_no=item["claim_no"],
@@ -315,13 +434,15 @@ def tool_search_detail_patent_by_id(
         for item in claim_items_sorted
     ]
 
-    # 대표 title 선택 (가장 처음 발견된 비어있지 않은 title)
-    title_value = title_candidates[0] if title_candidates else ""
-
     return PatentByIdOutput(
         patent_id=normalized_id,
         found=True,
         title=title_value,
+        priority=priority_value,
+        register=register_value,
+        ipc_raw=ipc_raw_value,
+        ipc_codes=ipc_codes_list,
+        link=link_value,
         num_claims=len(claim_models),
         claims=claim_models,
     )
