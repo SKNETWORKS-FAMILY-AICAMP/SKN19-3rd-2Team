@@ -1,4 +1,4 @@
-# 📘 AI 기반 특허 질의응답 시스템
+# 📘 AI 기반 컴퓨터비전 관련 특허 질의응답 시스템
 
 ---
 
@@ -68,7 +68,7 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 
   <img width="600" height="197" alt="image" src="https://github.com/user-attachments/assets/a374b167-52c0-4e51-92c7-5b92fcba931a" />
 
-- 그 핵심 기술인 **컴퓨터 비전** 관련 특허
+- 그 핵심 기술인 **컴퓨터 비전:기계가 시각적 세계를 이해하고 해석하도록 학습시키는 인공지능의 한 분야** 관련 특허
 
 ---
 
@@ -86,22 +86,49 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 - **LLM**: gpt-5.1
 
 ## 폴더 구성
-(구조)
+```
+SKN19-3RD-2TEAM/
+│
+├─ app/
+
+│   ├─ **init**.py
+│   ├─ app-test.ipynb
+│   ├─ doc_func.py
+│   ├─ ipc_func.py
+│   ├─ [main.py](http://main.py/)
+│   ├─ total_schemas.py
+│   └─ total_tools.py
+│
+├─ db_search/
+│   ├─ final.ipynb
+│   ├─ load_and_use.ipynb
+│   ├─ load_use.ipynb
+│   └─ search_optimizing.ipynb
+│
+├─ doc/
+│   ├─ data/
+│   ├─ llm/
+│   └─ rag/
+│
+├─ ipc/
+│   ├─ data/
+│   ├─ llm/
+│   └─ rag/
+│
+├─ .env
+├─ .gitignore
+└─ [README.md](http://readme.md/)
+```
 
 ---
 
-# 4. 시스템 아키텍처
-<img width="2325" height="967" alt="image" src="https://github.com/user-attachments/assets/7224c7f8-7eb1-4f5d-8225-48bb3e31665b" />
+# 4. WBS
+<img width="959" height="794" alt="image" src="https://github.com/user-attachments/assets/283dfca1-422c-4e87-8cc7-b38f5acf44e6" />
 
 
 ---
 
-# 5. WBS
-- (사진)
-
----
-
-# 6. 요구사항 명세
+# 5. 요구사항 명세
 
 ## 기능 요구사항
 | ID | 구분 | 내용 | 우선순위 | 비고 |
@@ -122,7 +149,7 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 
 ---
 
-# 7. 수집한 데이터 및 전처리 요약
+# 6. 수집한 데이터 및 전처리 요약
 
 ### 수집 규모
 - **1. IPC 코드**: 약 70,000건
@@ -154,27 +181,80 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
   - xml파일 파싱, 필요 정보 json 변환
   - 리스트 형태의 path를 `A > A01 > A01B` 형식의 문자열로 변경
   - 임베딩 생성 후 ChromaDB 저장
-    
+  
+    <img width="867" height="334" alt="image" src="https://github.com/user-attachments/assets/1efdd7e1-deef-4b7c-82e4-07d99e9efd49" />
+
 - **특허 문서**
   - xml파일 파싱, 필요 정보 json 변환
   - 청구항 분리
   - 임베딩 생성 후 ChromaDB 저장
+    
+    <img width="358" height="151" alt="image" src="https://github.com/user-attachments/assets/f471e849-87a1-480a-9380-8ea0c03b0aad" />
+    
+    - `documents`: 청구항 원본 문서
+    
+    <img width="387" height="164" alt="image" src="https://github.com/user-attachments/assets/45185d48-dad5-4a5f-8361-88d425efb849" />
+
+    - `register`: 공개/거절/무효 등 - 현재 서비스는 공개된 특허에 대해서만 제공
+    - `priority`: 우선권이 있는 국가
+    - `link`: 특허의 도면(요약본, 설계도 등) 링크
+ 
 
 ---
 
-# 8. DB 연동 구현 코드 (링크)
+# 7. 시스템 아키텍처
+<img width="2325" height="967" alt="image" src="https://github.com/user-attachments/assets/7224c7f8-7eb1-4f5d-8225-48bb3e31665b" />
+
+---
+
+# 8. 개발된 소프트웨어
+### 1) 검색 파이프라인
+
+<img width="1913" height="1176" alt="image" src="https://github.com/user-attachments/assets/77804c80-f5c1-4710-ba5d-d48bc4d52838" />
+
+### 2) 주요 프롬프트 엔지니어링
+ - LLM 역할 부여
+
+   <img width="690" height="224" alt="image" src="https://github.com/user-attachments/assets/5c5158c4-5977-435d-947d-0d1ba84aa67f" />
+
+ - 도구 명시
+
+   <img width="701" height="470" alt="image" src="https://github.com/user-attachments/assets/7d9ff2cd-7df2-49c3-a93e-c194c439a4cd" />
+
+ - 규칙 명시
+
+   <img width="715" height="214" alt="image" src="https://github.com/user-attachments/assets/591eddc2-95e8-4765-86e4-916dc695e314" />
+
+
+### 3) 예외처리(시스템 안정성)
+ - 정확도, 신뢰도 관련
+   
+  <img width="852" height="493" alt="image" src="https://github.com/user-attachments/assets/ed321be7-382c-48b9-ad1b-c44c69759c6d" />
+
+ - 질문 & 정보 요청
+
+  <img width="745" height="128" alt="image" src="https://github.com/user-attachments/assets/fa13dd46-583a-43dd-b259-2a78bbc7232f" />
+
+
+#### DB 연동 구현 코드 (링크)
 - (github 정리 후 링크 첨부)
 
-- ChromaDB 구축 코드
-https://github.com/____/PatentPilot/tree/main/db
+- ChromaDB 구축 코드 - 청구항 DB
+https://github.com/SKN19-3rd-4th-2team/SKN19-3rd-2team/blob/main/db_search/fixed_final.ipynb
 
-- Langchain tools 코드
+- ChromaDB 구축 코드 - IPC DB
+https://github.com/SKN19-3rd-4th-2team/SKN19-3rd-2team/blob/main/ipc/rag/build_chroma_clean.ipynb
 
-- DB 검색 코드
+- tools 연동 코드
+https://github.com/SKN19-3rd-4th-2team/SKN19-3rd-2team/blob/main/app/total_tools.py
+---
+
+# 9. 수행 결과
+(프로젝트 시연 캡처 이미지 첨부)
 
 ---
 
-# 9. DB 검색 최적화 개선 노력
+# 10. DB 검색 최적화 개선 노력
 ## 1. 청구항 DB 검색 최적화
 ### 1.1 multy-query
 **문제점**
@@ -195,16 +275,27 @@ https://github.com/____/PatentPilot/tree/main/db
 - 청구항이 아닌 출원번호로 재정렬 필요. 만약 z-score만 참조해 정렬한다면 우연히 유사도가 높은 청구항이 단 한 개가 나왔어도 해당 출원번호가 상위에 랭크되는 문재
 
 **해결 방안**
-- 출원번호로 그룹화 후 ‘검색된 청구항 중 상위 세 개의 유사도 평균’, ‘제일 높은 청구항의 유사도’, ‘검색된 청구항의 개수’를 이용해 score 계산
-- BM25 기반 키워드 검색 추가 → 하이브리드 검색 방식 적용
+- 출원번호로 그룹화 후 ‘검색된 청구항 중 상위 세 개의 유사도 평균’, ‘제일 높은 청구항의 유사도’, ‘검색된 청구항의 개수’를 이용해 가중치 다르게 하여 score 계산
+- BM25(tf-idf 개선 버전)기반 키워드 검색 score 추가 → 7:3 하이브리드 검색 방식 적용
 
 **평가 지표**
-- 유사 특허의 기준을 `같은 IPC 코드 공유`로 잡고, 특정 IPC 코드를 갖고 있는 특허의 출원번호를 저장해서  re-ranking했을 때 나오는 출원번호와 비교< 수정 필요
+- 명확한 평가 지표로 검색 결과에 대한 신뢰도 향상 필요
+- 유사 특허의 기준을 `같은 IPC 코드 공유`로 잡고, 한 특허의 IPC 코드들을 정답 데이터로 가정
+- re-ranking했을 때 나오는 특허의 IPC 코드와 비교해 몇 개가 포함되어 있는지 수치화
 
-**해결 결과**
-- BM25가 문자열 매칭을 보완하여 전체 검색 정확도와 신뢰도를 향상
-- 그냥 z-score 기준 상위 TOP_K 출원번호와 비교했을 때, 30개 중 20개만 일치하는 등의 랭킹 다양성 보임
-- (눈에 보이는 사진이 있을까?)
+**결과**
+```
+query = ‘750–1000nm 근적외선 발광을 제공하는 고효율 유기 EL 구조’ 
+```
+top_k = 30으로 검색했을 때,
+ 1) 기존
+    
+    <img width="316" height="276" alt="image" src="https://github.com/user-attachments/assets/064cc882-a457-4bdc-ae52-b0aa76064880" />
+
+ 2) 해결 방안 적용
+    
+    <img width="312" height="279" alt="image" src="https://github.com/user-attachments/assets/5f547a4e-4bea-4aa6-ac81-b3322ca3009e" />
+
  
 ## 2. IPC DB 검색 최적화
 ### 2.1 계층 구조 관한 문제
@@ -226,10 +317,10 @@ https://github.com/____/PatentPilot/tree/main/db
 <img width="1805" height="582" alt="image" src="https://github.com/user-attachments/assets/82a94242-ad76-4111-a37d-0679b2b5e109" />
 
 **해결 방안**
-- 상위-하위가 모두 검색되었을 때에는 좀 더 자세한 설명을 포함하는 하위 우선하되, 부모의 정보를 함께 전달(Main을 하위 코드로 Sub를 조상 코드들로 구성해서 전달)
-- 이때 임계 비율이상 쿼리 간 거리가 하위코드보다 상위코드가 더 가깝다면, Main에 부모만 전달하도록 함
-- ??
+- 상위-하위가 모두 검색되었을 때에는 좀 더 자세한 설명을 포함하는 하위코드를 우선하되, 부모의 정보를 함께 전달(Main을 하위 코드로, Sub를 조상 코드들로 구성해서 LLM에 전달)
+- 이때 쿼리 간 거리가 임계 비율 이상 하위코드보다 상위코드가 더 가깝다면, Main에 부모만 전달하도록 함
 - 유사한 의미의 코드가 없을 경우 상관없는 코드를 제공하는 것을 대비해 평균 컷오프 거리를 구해서 1.4이상의 거리를 가지는 코드는 컷오프 하도록 로직 수정
+- 그리고 부모와는 종속관계를 갖지만 형제 코드와는 대립하는 관계를 가지기 때문에 동일한 부모를 가진 형제 코드는 가장 거리가 가까운 코드만 선택하도록 함
 
 **해결 결과**
 <img width="1803" height="279" alt="image" src="https://github.com/user-attachments/assets/5e10834d-26cc-4b55-9dbf-b76760798dbe" />
@@ -237,7 +328,7 @@ https://github.com/____/PatentPilot/tree/main/db
 
 ---
 
-# 10. 챗봇 테스트 & 개선 노력
+# 11. 챗봇 테스트 & 개선 노력
 
 ## **1) 출원번호 단건 조회가 되지 않던 문제**
 
@@ -273,7 +364,7 @@ https://github.com/____/PatentPilot/tree/main/db
 
 - **스키마 추가**
     
-  - 출원번호 전용 입력/출력 스키마를 Pydantic으로 정의
+  - 출원번호 전용 입력/출력 스키마를 정의
     (예: `PatentIdInput`, `PatentDetailOutput` 형태로 설계)
     
 - **툴 추가**
@@ -340,7 +431,7 @@ https://github.com/____/PatentPilot/tree/main/db
     
 - **재검색 로직 한계**
     
-  - 도구는 단순히 `top_k`개만 가져와서 정렬 후 바로 반환하는 방식 → 일부 특허를 제외하고 다시 검색해도 **항상 같은 상위 후보들이 재등장**하는 문제
+   도구는 단순히 `top_k`개만 가져와서 정렬 후 바로 반환하는 방식 → 일부 특허를 제외하고 다시 검색해도 **항상 같은 상위 후보들이 재등장**하는 문제
 
 
 ### 해결 방법
@@ -394,16 +485,13 @@ https://github.com/____/PatentPilot/tree/main/db
 ```
 
 
-
 ---
 
-# 11. 수행 결과
-(프로젝트 시연 캡처 이미지 첨부)
-
----
-
-# 12. 프로젝트 확장 방향
-- 
+# 12. 프로젝트 개선 방향
+- GPT API 대신 오픈 소스 sLLM 사용
+- 특허 분야 확장
+- 거절된 특허 청구항 정보를 활용한 제공 서비스 확장
+- 도면을 사용한 복합적 정보 제공
 
 ---
 # 13.  한줄회고
@@ -422,7 +510,7 @@ https://github.com/____/PatentPilot/tree/main/db
 
 <td style="width: 10%" align="center">신지섭</td>
 
-<td>(내용)</td>
+<td>이번 프로젝트에서 사실 초반 설계에서는 Langchain에 대한 이해 부족으로 LLM의 의사결정을 로직으로 구현하려고 하였으나 Langchain의 tool에 대한 것을 이해하고 난 후 agent를 이용한 방향으로 수정하게 되었다. 또한 tool을 구성할 때 LLM에 전달할 사용 설명서를 세부적으로 정의하여 입력, 기능, 출력으로 크게 구분하여 정의해 주는 것으로 LLM이 도구를 더 오류 없이 사용하게 할 수 있었다. sLLM 같은 모델의 사용을 시도했지만, 입출력 토큰의 제한이 대화형 챗봇의 memory 구조에서 너무 치명적인 한계로 작동하여 구현하지 못한 것이 아쉬웠지만 전반적으로 배웠던 것의 사용 이유를 더욱 명확하게 이해하게 된 프로젝트였다.</td>
 
 </tr>
 
@@ -430,7 +518,7 @@ https://github.com/____/PatentPilot/tree/main/db
 
 <td style="width: 10%" align="center">왕혁준</td>
 
-<td>(내용)</td>
+<td>이번 프로젝트를 진행하면서 LLM 자체의 성능보다, 이를 둘러싼 구조와 설계가 얼마나 중요한지 느낄 수 있었다. 특히 나는 LangChain을 활용해 전체적인 구조를 설계하고, 각 단계에서 어떤 정보가 오가야 하는지, 어떤 설명과 프롬프트가 붙어야 하는지를 정의하는 역할을 맡았는데, 이 과정이 정말 재미있었다. 우리가 원하는 수준의 챗봇을 만들기 위해 RAG 구조를 어떻게 잡을지 고민하고, 스키마를 계속 다듬고, 프롬프트의 표현 하나까지 수정해가며 모델의 반응이 점점 원하는 방향으로 변하는 것을 보는 경험이 인상 깊었다. 어떤 컨텍스트를 어떻게 넣고, 어떤 형식으로 출력되게 해야 다음 단계에서도 의미 있는 데이터가 될지를 고려하는 일이 결과에 훨씬 더 큰 영향을 준다는 것도 깨달았다. 이번 프로젝트를 통해 LLM+RAG 시스템을 설계하는 일 자체에 큰 흥미가 있다는 걸 알게 되었고, 다음 프로젝트에서는 초기 단계부터 데이터 스키마와 프롬프트 설계를 더 체계적으로 고민해 보는 것을 목표로 삼게 되었다.</td>
 
 </tr>
 
@@ -446,7 +534,7 @@ https://github.com/____/PatentPilot/tree/main/db
 
 <td style="width: 10%" align="center">장효정</td>
 
-<td>(내용)</td>
+<td>LLM을 활용한 첫 프로젝트였기에 기획 단계부터 이전 과제들과는 다른 어려움이 있었습니다. 수업 시간에 학습한 내용을 바탕으로 실제 RAG를 구현하려고 하니, 어떤 구조와 방식으로 접근해야 하는지 초기에는 명확히 이해하지 못했습니다. 그러나 직접 구현 과정을 거치며 배운 내용을 실제로 적용해 볼 수 있었고, 이를 통해 RAG에 대한 이해도를 한층 심화할 수 있었습니다. 또한 Chroma DB를 활용하여 유사도 검색 최적화를 위해 Hybrid Search를 적용했으나, 적용 전후의 성능 향상을 객관적으로 평가할 적절한 지표를 선정하는 데 어려움이 있었습니다. 이에 대해 팀원들과 반복적인 논의를 진행한 끝에 타당한 평가 기준을 확립할 수 있었습니다. 이전 프로젝트에서도 협업의 중요성을 체감했지만, 이번에는 역할을 더욱 세분화하여 효과적으로 분업할 수 있었고, 그 덕분에 만족스러운 결과를 얻을 수 있었다고 생각합니다.</td>
 
 </tr>
 
@@ -454,13 +542,9 @@ https://github.com/____/PatentPilot/tree/main/db
 
 <td style="width: 10%" align="center">박도연</td>
 
-<td>(내용)</td>
+<td>특허 청구항에 대한 이해를 기반으로 청구항 DB 생성 및 검색 로직 구현을 맡았다. 시도해본 각 검색 알고리즘에 대해 명확한 기준점을 잡고 비교하는 게 필요했으나, 기준점(평가 지표)을 설계하기 어려웠고 체계적으로 진행되지 않아 비교에 어려움이 있었다. 또한, DB를 구축할 때나 LLM에 반환할 때 필요하다고 생각하지 못했던 metadata가 있어, 데이터와 흐름에 대한 충분한 이해가 필요함을 다시 한 번 느꼈다.</td>
 
 </tr>
 
 </table>
 
----
-
-# 라이선스
-MIT License
