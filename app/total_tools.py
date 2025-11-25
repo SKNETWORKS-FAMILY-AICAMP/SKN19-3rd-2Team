@@ -3,6 +3,7 @@ from typing import List, Optional
 from langchain_core.tools import tool
 import os
 import chromadb
+import re
 from chromadb.utils import embedding_functions
 from sentence_transformers import SentenceTransformer
 
@@ -217,6 +218,49 @@ def tool_search_patent_with_description(
 # 2) 출원번호로 특허 검색하기 위한 툴
 # ---------------------------------------------------------
 
+def normalize_korean_patent_id(patent_id: str) -> str:
+    """
+    한국 출원번호 입력을 DB에서 사용하는 형식으로 정규화합니다.
+
+    지원 예시:
+    - '1020050108060'          -> '1020050108060'
+    - '10-2005-0108060'        -> '1020050108060'
+    - '10 2005 0108060'        -> '1020050108060'
+    - '10/2005/0108060'        -> '1020050108060'
+
+    기본 규칙:
+    1) 먼저 'NN-YYYY-NNNNNNN' 패턴을 우선적으로 인식해서 13자리로 맞추고,
+    2) 그 외에는 숫자만 남기고, 13자리면 그대로 사용합니다.
+    3) 그 외 길이/형식은 그대로 반환하거나, 필요하면 빈 문자열을 반환해
+       "DB에 없다" 쪽으로 처리되게 할 수 있습니다.
+    """
+    if not patent_id:
+        return ""
+
+    s = patent_id.strip()
+
+    # 1) 정형 패턴: 2자리 + 구분자 + 4자리 + 구분자 + 5~7자리
+    #    예: '10-2005-0108060', '10 2005 108060', '10/2005/108060'
+    m = re.match(r"^\s*(\d{2})\D+(\d{4})\D+(\d{5,7})\s*$", s)
+    if m:
+        kind = m.group(1)      # 10, 20, 30 등
+        year = m.group(2)      # 2005
+        serial = m.group(3)    # 0108060 또는 108060 같은 것
+        # 일단 7자리로 zero-padding (선행 0이 빠졌을 가능성 고려)
+        serial = serial.zfill(7)
+        return f"{kind}{year}{serial}"
+
+    # 2) 그 외에는 숫자만 남긴다
+    digits = re.sub(r"\D", "", s)
+
+    # 13자리면 이미 우리가 쓰는 형식이라고 보고 그대로 사용
+    if len(digits) == 13:
+        return digits
+
+    # 그 외 길이는 애매하므로 그대로 돌려보내거나
+    # 필요하면 추가 규칙(예: 11자리면 앞에 '10' 붙이기 등)을 추가할 수 있다.
+    return digits
+
 @tool(args_schema=PatentByIdInput)
 def tool_search_detail_patent_by_id(
     patent_id: str,
@@ -257,12 +301,13 @@ def tool_search_detail_patent_by_id(
       그런 경우에는 found=False와 함께, KIPRIS/특허로 등 외부 서비스를 안내해야 합니다.
     """
     # 1) 입력 출원번호 정규화 (공백 제거 등)
-    normalized_id = patent_id.strip()
+    original_input = patent_id.strip()
+    normalized_id = normalize_korean_patent_id(original_input)
 
     # 빈 문자열 방어
     if not normalized_id:
         return PatentByIdOutput(
-            patent_id=patent_id,
+            patent_id=original_input,
             found=False,
             title="",
             priority="",
