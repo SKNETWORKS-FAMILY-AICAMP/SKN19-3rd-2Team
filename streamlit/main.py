@@ -335,7 +335,7 @@ def chat_with_memory(user_input: str, thread_id: str = "default-thread") -> None
                 step_idx += 1
                 tool_calls = getattr(last_message, "tool_calls", None) or []
 
-                # (A) 이번 step에서 도구를 호출하려는 경우 
+                # (A) 이번 step에서 도구를 호출하려는 경우
                 if tool_calls:
                     tool_names = [tc.get("name", "UNKNOWN_TOOL") for tc in tool_calls]
                     print(f"[Step {step_idx}][Agent] 다음 도구 호출 예정: {tool_names}")
