@@ -443,12 +443,12 @@ def main():
     # 페이지 설정
     st.set_page_config(
         page_title="컴퓨터 비전 전용 특허 에이전트 챗봇",
-        page_icon="🗃️",
+        page_icon="💻",
         layout="wide"
     )
     
     # 제목
-    st.title("🗃️ 컴퓨터 비전 전용 특허 에이전트 챗봇")
+    st.title("💻 컴퓨터 비전 전용 특허 에이전트 챗봇")
     st.markdown("컴퓨터 비전 관련 특허 분류 및 유사 특허 검색을 도와드립니다.")
     
     # 초기화
