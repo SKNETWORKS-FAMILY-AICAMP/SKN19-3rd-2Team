@@ -342,7 +342,146 @@ top_k = 30으로 검색했을 때,
 
 # 11. 챗봇 테스트 & 개선 노력
 
-## **1) 출원번호 단건 조회가 되지 않던 문제**
+## **[TC-1] 단일 요청에서 적절한 Tool 선택 여부**
+
+### 테스트 목적
+
+사용자의 자연어 설명만으로, 에이전트가 의도에 맞는 Tool을 자동 선택하는지 검증
+
+### 관련 기능
+
+- tool_search_patent_with_description
+- tool_search_ipc_code_with_description
+- tool_search_detail_patent_by_id
+
+### 입력 예시
+
+"전방 카메라로 보행자 행동을 인식해서 위험도를 점수로 계산하는
+
+자율주행 보조 기능을 구상 중이야. 비슷한 특허 5개만 찾아줘."
+
+### 기대 동작
+
+- 유사 특허 검색 Tool만 호출
+- IPC 관련 Tool이나 출원번호 조회 Tool은 호출하지 않음
+
+### 실제 동작
+
+![스크린샷 2025-11-25 185616.png](attachment:92af5b80-bd80-4570-ba8d-fa0ce06bb530:스크린샷_2025-11-25_185616.png)
+
+### 검증 포인트
+
+[PASS] "유사 특허 검색" 의도일 때, 불필요한 Tool 호출 없이 올바른 Tool만 사용. 
+
+## **[TC-2] Tool 호출 시 실제 DB 검색 여부 및 임의 생성 방지**
+
+### 테스트 목적
+
+Tool 호출 결과가 실제 벡터 DB/IPC DB에서 온 데이터인지,
+
+LLM이 임의로 특허/IPC 정보를 생성하지 않는지 확인
+
+### 관련 기능
+
+- tool_search_patent_with_description
+- tool_search_ipc_description_from_code
+
+### 입력 예시
+
+"전방 카메라로 보행자 행동을 인식해서 위험도를 점수로 계산하는
+
+자율주행 보조 기능을 구상 중이야. 이 기술에 어울리는 IPC코드를 3개만 추천해줘."
+
+### 기대 동작
+
+- IPC 설명 Tool을 호출해 DB에서 코드를 조회
+- 기존 DB에 없던 임의의 IPC 코드 명칭/설명을 만들어내지 않음
+
+### 실제 동작
+
+```
+mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPORTING VEHICLES IN GENERAL CONJOINT CONTROL OF VEHICLE SUB-UNITS OF DIFFERENT TYPE OR DIFFERENT FUNCTION CONTROL SYSTEMS SPECIALLY ADAPTED FOR HYBRID VEHICLES ROAD VEHICLE DRIVE CONTROL SYSTEMS FOR PURPOSES NOT RELATED TO THE CONTROL OF A PARTICULAR SUB-UNIT Purposes of road vehicle drive control systems not related to the control of a particular sub-unit, e.g. of systems using conjoint control of vehicle sub-units Predicting or avoiding probable or impending collision Taking automatic action to avoid collision, e.g. braking and steering'), ... 생략
+```
+
+### 검증 포인트
+
+[PASS] Tool 결과 범위 밖의 IPC/특허 정보를 LLM이 지어내지 않음
+
+## **[TC-3] 복합 요청에서 다중 Tool 순차 호출 여부**
+
+### 테스트 목적
+
+하나의 자연어 요청에 유사 특허 검색 + IPC 후보 + IPC 설명까지
+
+여러 Tool을 순차적으로 호출할 수 있는지 검증
+
+### 관련 기능
+
+- tool_search_patent_with_description
+- tool_search_ipc_code_with_description
+- tool_search_ipc_description_from_code
+
+### 입력 예시
+
+"운전자의 시선과 전방 카메라 영상을 함께 써서
+
+졸음운전/주의산만을 감지하는 시스템이야.
+
+1. 비슷한 특허 3개, 2) IPC 후보, 3) IPC 코드별 설명까지 한 번에 정리해 줄래?"
+
+### 기대 동작
+
+- 특허 검색 Tool → IPC 후보 Tool → IPC 설명 Tool 순으로 2~3회 Tool 호출
+- 최종 답변에서 세 부분이 구조적으로 나뉘어 정리됨
+
+### 실제 동작 요약
+
+![스크린샷 2025-11-25 190325.png](attachment:8eaadf1c-6662-4fcb-953b-89a22d82f55f:스크린샷_2025-11-25_190325.png)
+
+```
+1. 유사 특허 3건 정리  
+(이 검색은 ‘컴퓨터 비전·모빌리티’ 중심 DB에 기반한 것으로, 전체 특허 중 일부만 포함되어 있습니다.)
+
+### 결과 1. 특허 1020220189196  
+- 명칭(요지): 여객 운송 차량 객실 내 승객 모니터링 시스템  
+- 핵심 청구항 내용 요약
+
+...
+
+2. IPC 후보 제안  
+
+#### (1) 차량 내 카메라 기반 운전자/주변 감시
+
+- **B60R 1/00**  
+  - 상위 구조:  
+    - B: 수송(Transportation)  
+    - B60: 일반 차량  
+    - B60R: 차량 부속품/장착구 등  
+    - B60R 1/00: 차량용 광학 보기 장치, 카메라/비디오 시스템을 이용한 실시간 보기 시스템  
+  - 설명: 차량에 장착된 카메라/영상 시스템으로 운전자 또는 승객이 주변을 실시간 확인하도록 하는 기술 전반.  
+  - 귀 발명과의 연관: 차량 운전석 주변/전방 카메라를 이용해 운전자 및 전방 도로를 동시에 모니터링하는 구조이므로, 기본 메인 IPC로 적합해 보입니다.
+  
+
+...
+
+3. 요청하신 IPC 코드별 설명 (B60R·G01V 계열 중심)
+
+아래는 도구에서 상세 설명을 가져온 코드들입니다.
+
+### 3.1 B60R 1/00 계열
+
+- **B60R 1/00**  
+  - 계층: B(수송) → B60(차량 전반) → B60R(차량 부속품) → B60R 1/00  
+  - 정의:  
+    - “차량용 광학 보기 장치”  
+    - 카메라, 비디오 시스템 등 광학 영상 캡처 시스템을 이용하여 차량 내 운전자/승객이 실시간으로 외부 또는 내부를 보게 하는 장치 전반.  
+  - 귀 발명: 차량 내 운전자 카메라와 전방 카메라를 이용하므로 기본적으로 이 그룹에 속한다고 볼 수 있습니다.
+```
+
+### 검증 포인트
+[PASS] 하나의 요청에 대해 적절한 Tool들을 조합해서 순차 호출하는지 확인
+
+## **[TC4] 출원번호 단건 조회**
 
 ### 개선 전 질문 + 답변
 
@@ -411,7 +550,7 @@ top_k = 30으로 검색했을 때,
 ...(생략)
 ```
 
-## **2) 후속 요청에서 제외/재구성 지시가 반영되지 않던 문제**
+## **[TC5] 후속 요청에서 제외/재구성 지시**
 
 ### 개선 전 질문 + 답변
 
