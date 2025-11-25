@@ -37,15 +37,15 @@ LLM이 상황에 맞는 Tool을 자동으로 선택하여
 - 특허출원의 가장 핵심적인 부분으로서, 출원인이 **보호받고자 하는 사항**, 즉 독점권을 요구하는 **권리범위**를 기재한 것 (법 42조4항 본문)
 - 청구범위에 기재되지 아니한 발명은 특허권으로서 보호받을 수 없음
 - 청구항 예시
- <img width="1171" height="637" alt="image" src="https://github.com/user-attachments/assets/fbc8f2d2-db0e-4dcb-88cb-54064aa51f0b" />
+<img width="1171" height="637" alt="image" src="https://github.com/user-attachments/assets/fbc8f2d2-db0e-4dcb-88cb-54064aa51f0b" />
 
 ### IPC 코드란?
 - 특허출원서, 실용신안 등의 특허문헌을 위한 공통 분류 규정
- <img width="503" height="368" alt="image" src="https://github.com/user-attachments/assets/e628d294-9b21-496b-bea4-4c1008f2a4fe" />
+<img width="503" height="368" alt="image" src="https://github.com/user-attachments/assets/e628d294-9b21-496b-bea4-4c1008f2a4fe" />
 
 ### 문제점
 **1) 관련 기사 1**
-
+	
 <img width="1193" height="300" alt="image" src="https://github.com/user-attachments/assets/01a10fac-f137-4984-a757-5f0b05299de1" />
 
 **2) 관련 기사 2**
@@ -388,7 +388,7 @@ top_k = 30으로 검색했을 때,
 
 ### 테스트 결과
 
-**"유사 특허 검색" 의도일 때, 불필요한 Tool 호출 없이 올바른 Tool만 사용.**
+**"유사 특허 검색" 의도일 때, 불필요한 Tool 호출 없이 올바른 Tool만 사용**
 
 ---
 
@@ -404,6 +404,8 @@ LLM이 임의로 특허/IPC 정보를 생성하지 않는지 확인
 
 - `tool_search_patent_with_description`
 - `tool_search_ipc_description_from_code`
+- `System Prompt`
+  
 
 ### 입력 예시
 ```
@@ -420,7 +422,9 @@ LLM이 임의로 특허/IPC 정보를 생성하지 않는지 확인
 ### 실제 동작
 
 ```
-mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPORTING VEHICLES IN GENERAL CONJOINT CONTROL OF VEHICLE SUB-UNITS OF DIFFERENT TYPE OR DIFFERENT FUNCTION CONTROL SYSTEMS SPECIALLY ADAPTED FOR HYBRID VEHICLES ROAD VEHICLE DRIVE CONTROL SYSTEMS FOR PURPOSES NOT RELATED TO THE CONTROL OF A PARTICULAR SUB-UNIT Purposes of road vehicle drive control systems not related to the control of a particular sub-unit, e.g. of systems using conjoint control of vehicle sub-units Predicting or avoiding probable or impending collision Taking automatic action to avoid collision, e.g. braking and steering'), ... 생략
+mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPORTING VEHICLES IN GENERAL CONJOINT CONTROL OF VEHICLE SUB-UNITS OF DIFFERENT TYPE OR DIFFERENT FUNCTION CONTROL SYSTEMS SPECIALLY ADAPTED FOR HYBRID VEHICLES ROAD VEHICLE DRIVE CONTROL SYSTEMS FOR PURPOSES NOT RELATED TO THE CONTROL OF A PARTICULAR SUB-UNIT Purposes of road vehicle drive control systems not related to the control of a particular sub-unit, e.g. of systems using conjoint control of vehicle sub-units Predicting or avoiding probable or impending collision Taking automatic action to avoid collision, e.g. braking and steering'),
+
+... (생략)
 ```
 
 ### 테스트 결과
@@ -503,7 +507,7 @@ mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPO
 ```
 
 ### 테스트 결과
-**하나의 요청에 대해 적절한 Tool들을 조합해서 순차 호출하는지 확인함**
+**하나의 요청에 대해 적절한 Tool들을 조합해서 순차 호출하는 것을 확인함**
 
 ---
 
@@ -675,6 +679,7 @@ mains=[IPCSimpleInfo(ids='B60W30/09', description='PERFORMING OPERATIONS TRANSPO
 
 - `tool_search_detail_patent_by_id`
 - `doc_collection.get(where={"patent_id": ...})`
+- `System Prompt`
 
 ### 입력 예시
 
@@ -729,6 +734,7 @@ patent_id='10-2099-9999999' found=False title='' num_claims=0 claims=[]
 
 ### 관련 기능
 
+- `LLM`
 - `tool_search_patent_with_description`
 - `tool_search_ipc_code_with_description`
 
@@ -736,7 +742,10 @@ patent_id='10-2099-9999999' found=False title='' num_claims=0 claims=[]
 
 ```
 "요즘 밤에 너무 더워서 잠도 잘 못 자겠는데 그래도 특허 프로젝트는 해야겠지… ㅎㅎ
-이렇게 더운 밤이니까 갑자기 생각난건데 카메라로 사용자의 얼굴을 찍어서 졸음/피로 상태를 추정하고 음 그리고... 졸음운전 위험이 높다고 판단되면 차량 내부 조명 색, 시트 진동, HUD 경고 아이콘을 동시에 바꿔서 깨워주는 시스템은 어떤것같아? 혹시 이거랑 비슷한 특허가 있으려나? 없어야 대박인데 ㅋㅋ 만약 있으면 5개? 아니 7개 찾아주고 ipc코드도 적당히 찾아주라. 그나저나 왜 더운날엔 이렇게 졸음운전이 급증하는걸까?"
+이렇게 더운 밤이니까 갑자기 생각난건데 카메라로 사용자의 얼굴을 찍어서 졸음/피로 상태를 추정하고
+음 그리고... 졸음운전 위험이 높다고 판단되면 차량 내부 조명 색, 시트 진동, HUD 경고 아이콘을 동시에 바꿔서 깨워주는 시스템은 어떤것같아?
+혹시 이거랑 비슷한 특허가 있으려나? 없어야 대박인데 ㅋㅋ 만약 있으면 5개? 아니 7개 찾아주고 ipc코드도 적당히 찾아주라.
+그나저나 왜 더운날엔 이렇게 졸음운전이 급증하는걸까?"
 ```
 
 ### 기대 동작
@@ -825,11 +834,7 @@ patent_id='10-2099-9999999' found=False title='' num_claims=0 claims=[]
   실제 서비스에서 사용할 모델 선택 근거를 정리.
 
 ### 관련 기능  
-  - LangGraph ReAct 에이전트 전체 플로우
-  - `tool_search_patent_with_description`
-  - `tool_search_ipc_code_with_description`
-  - `tool_search_ipc_description_from_code`
-  - `tool_search_detail_patent_by_id`
+  - `LangGraph ReAct 에이전트 전체 플로우`
 
 ### 측정 방법  
   - LangSmith 트레이스 기준으로, 각 TC에 대해  
