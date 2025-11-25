@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 # ✅ 상수 설정
 MERGE_THRESHOLD_RATIO = 6.64  # 통합 임계값 (비율 %)
@@ -54,7 +55,6 @@ def get_ipc_codes_by_query(ipc_model, ipc_collection, query_text, top_k=5):
     valid_ids = []  # 순서 유지를 위한 리스트
 
     for code, dist, meta in zip(raw_ids, raw_distances, raw_metadatas):
-        # ⛔ 거리 컷오프 적용 (예: 알루미늄 1.58 -> 제거됨)
         if dist > MAX_DISTANCE_THRESHOLD:
             continue
 
@@ -116,28 +116,27 @@ def get_ipc_codes_by_query(ipc_model, ipc_collection, query_text, top_k=5):
     return final_output[:top_k]
 
 
-
 def get_combined_ipc_codes(ipc_model, ipc_collection, queries, total_top_k=5):
+    """
+    여러 개의 쿼리 문자열을 받아 통합된 IPC 코드 리스트를 반환합니다.
+    (품질 우선 라운드 로빈 + 형제 노드 중복 제거 적용)
+    """
 
     # 1. 쿼리별 결과 수집 및 그룹 품질 평가
     query_groups = []
 
     for query in queries:
-        # 내부적으로는 넉넉하게 가져와야 선별이 가능하므로 total_top_k보다 많이 요청 (예: 3배수)
-        # 여기서 get_ipc_codes_by_query는 이미 정의된 함수를 사용
-        raw_results = get_ipc_codes_by_query(ipc_model, ipc_collection, query, top_k=total_top_k * 3)
+        raw_results = get_ipc_codes_by_query(ipc_model, ipc_collection, query, top_k=total_top_k * 10)
 
         if not raw_results:
             continue
 
-        # 그룹의 품질 점수 계산 (상위 3개의 평균 거리)
-        # 상위권 결과가 좋을수록 신뢰도 높은 그룹으로 판단
+        # 그룹 품질 점수 계산
         top_n_check = min(len(raw_results), 3)
         avg_dist = (
             sum(item["distance"] for item in raw_results[:top_n_check]) / top_n_check
         )
 
-        # 출처 태깅 (LLM이 어떤 쿼리에서 나온 건지 알 수 있게)
         for item in raw_results:
             item["source_query"] = query
 
@@ -145,43 +144,69 @@ def get_combined_ipc_codes(ipc_model, ipc_collection, queries, total_top_k=5):
             {
                 "query": query,
                 "avg_dist": avg_dist,
-                "queue": raw_results,  # 이미 거리순으로 정렬되어 있음
+                "queue": raw_results, 
             }
         )
 
-    # 검색 결과가 하나도 없는 경우
     if not query_groups:
         return []
 
-    # 2. 그룹 정렬 (품질 좋은 순서: 거리 오름차순)
-    # 예: [비전(0.9), AI(1.0), ..., 알루미늄(1.5)] 순서로 정렬됨
+    # 2. 그룹 정렬 (품질 순)
     query_groups.sort(key=lambda x: x["avg_dist"])
 
     final_list = []
-    inserted_main_codes = set()  # 중복 방지용 집합
+    
+    # [중복 방지용 집합]
+    inserted_main_codes = set()   # 이미 선택된 메인 코드 (완전 중복 방지)
+    inserted_parents = set()      # 이미 선택된 코드들의 부모들 (형제 중복 방지)
 
     # 3. 라운드 로빈으로 추출
     while len(final_list) < total_top_k:
         added_in_this_round = False
 
-        # 품질 좋은 그룹부터 순회
         for group in query_groups:
-            # 목표 개수 채웠으면 중단
             if len(final_list) >= total_top_k:
                 break
 
-            # 해당 그룹 큐에 남은 게 있다면
             if group["queue"]:
-                # 큐에서 하나 꺼냄 (가장 상위 아이템)
+                # 큐에서 가장 좋은 후보(1등)를 꺼냄
                 candidate = group["queue"].pop(0)
 
-                # 중복 체크 (다른 쿼리에서 이미 뽑힌 코드가 아닐 경우만)
-                if candidate["main"] not in inserted_main_codes:
-                    final_list.append(candidate)
-                    inserted_main_codes.add(candidate["main"])
-                    added_in_this_round = True
+                # -----------------------------------------------------------
+                # [Filter 1] 완전 중복 체크 (이미 리스트에 있는 코드인가?)
+                # -----------------------------------------------------------
+                if candidate["main"] in inserted_main_codes:
+                    continue
 
-        # 한 바퀴를 돌았는데도 추가된 게 없다면 (모든 큐가 비었음) 종료
+                # -----------------------------------------------------------
+                # [Filter 2] 형제 중복 체크 (부모가 같은가?)
+                # -----------------------------------------------------------
+                # 이미 등록된 부모 집합(inserted_parents)에 내 부모가 포함되어 있다면,
+                # "내 형제가 이미 등록되었다"는 뜻이므로 나는 스킵함.
+                # (큐가 거리순 정렬되어 있으므로, 먼저 등록된 형제가 더 좋은 형제임)
+                is_sibling = False
+                for parent in candidate["sub"]:
+                    if parent in inserted_parents:
+                        is_sibling = True
+                        break
+                
+                if is_sibling:
+                    continue 
+
+                # -----------------------------------------------------------
+                # [Pass] 통과! 리스트에 추가
+                # -----------------------------------------------------------
+                final_list.append(candidate)
+                
+                # 방문 처리
+                inserted_main_codes.add(candidate["main"])
+                
+                # 내 부모들도 '사용됨'으로 등록 -> 이후에 나올 내 형제들을 막음
+                for parent in candidate["sub"]:
+                    inserted_parents.add(parent)
+                
+                added_in_this_round = True
+
         if not added_in_this_round:
             break
 

@@ -335,35 +335,74 @@ class PatentClaimFull(BaseModel):
 
 class PatentByIdOutput(BaseModel):
     """
-    출원번호 기반 조회 툴의 최종 반환 결과.
+    출원번호(patent_id) 하나를 기준으로,
+    해당 특허의 메타데이터 + 청구항 전체/일부를 반환하는 출력 스키마.
+
+    - tool_search_detail_patent_by_id 툴의 반환 타입으로 사용된다.
+    - LLM은 이 구조를 받아서 '특허 개요 + IPC + 주요 청구항 요약' 등을 생성한다.
     """
     patent_id: str = Field(
         ...,
-        description="조회에 사용된 출원번호 또는 patent_id.",
+        description="요청한 출원번호/특허번호. 내부 정규화 후의 값이 들어간다.",
     )
     found: bool = Field(
         ...,
         description=(
-            "True 이면 DB에서 해당 출원번호를 가진 청구항들이 하나 이상 발견되었음을 의미한다. "
-            "False 이면 현재 특허 벡터 DB 범위 안에 이 출원번호가 없다는 뜻이다."
+            "벡터 DB(doc_collection) 안에서 이 출원번호에 해당하는 데이터가 "
+            "실제로 존재하는지 여부. "
+            "False이면 title, IPC, 청구항 등은 비어 있고, "
+            "외부(KIPRIS/특허로 등) 조회를 안내해야 한다."
         ),
     )
+    # ---- 특허 메타데이터 (모든 청구항에 공통으로 들어 있는 정보) ----
     title: str = Field(
         "",
+        description="발명의 명칭. 메타데이터에 여러 번 등장해도 대표 1개만 고른다.",
+    )
+    priority: str = Field(
+        "",
+        description="우선권 정보/출원국 정보 (예: '대한민국'). 비어 있을 수도 있다.",
+    )
+    register: str = Field(
+        "",
+        description="공개/등록/출원 등 공보 상태 (예: '공개', '등록'). 비어 있을 수도 있다.",
+    )
+    ipc_raw: str = Field(
+        "",
         description=(
-            "해당 특허의 발명의 명칭. "
-            "여러 청구항 메타데이터 중 첫 번째로 발견된 title 을 대표값으로 사용한다. "
-            "메타데이터에 title 정보가 없다면 빈 문자열일 수 있다."
+            "메타데이터에 기록된 IPC 전체 문자열. "
+            "예: 'H04M 3/42, H04B 1/40, G06F 17/00, G06Q 30/06'. "
+            "쉼표로 구분된 원본 형태 그대로 저장한다."
         ),
     )
-    num_claims: int = Field(
-        ...,
-        description="DB에서 조회된 청구항 개수.",
-    )
-    claims: List[PatentClaimFull] = Field(
+    ipc_codes: List[str] = Field(
         default_factory=list,
         description=(
-            "청구항 번호(claim_no) 오름차순으로 정렬된 청구항 리스트. "
-            "max_claims 가 0이면 전체, 0보다 크면 그 개수만큼 앞에서 잘라서 반환한다."
+            "ipc_raw를 쉼표(,)로 분리하고 공백을 제거한 IPC 코드 리스트. "
+            "예: ['H04M 3/42', 'H04B 1/40', 'G06F 17/00', 'G06Q 30/06']"
+        ),
+    )
+    link: str = Field(
+        "",
+        description=(
+            "공보 원문 또는 PDF로 연결되는 외부 링크 URL. "
+            "예: KIPRIS+에서 제공하는 fileToss.jsp 링크 등."
+        ),
+    )
+
+    # ---- 청구항 정보 ----
+    num_claims: int = Field(
+        ...,
+        description=(
+            "이번 응답에서 반환된 청구항 개수. "
+            "max_claims=0이면 전체 청구항 수, "
+            "양수라면 그 상한 내에서 잘린 개수가 들어간다."
+        ),
+    )
+    claims: List[PatentClaimFull] = Field(
+        ...,
+        description=(
+            "claim_no 오름차순으로 정렬된 청구항 리스트. "
+            "각 원소는 (청구항 번호, 청구항 전체 텍스트)를 담고 있다."
         ),
     )
