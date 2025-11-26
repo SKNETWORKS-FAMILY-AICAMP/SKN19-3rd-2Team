@@ -213,7 +213,7 @@ SKN19-3RD-2TEAM/
 ### 2) 주요 프롬프트 엔지니어링
  - LLM 역할 부여
 
-   <img width="690" height="224" alt="image" src="https://github.com/user-attachments/assets/5c5158c4-5977-435d-947d-0d1ba84aa67f" />
+   <img width="664" height="223" alt="Image" src="https://github.com/user-attachments/assets/4836bb2f-07d0-4b55-b1a6-a8f3616cf4e3" />
 
  - 도구 명시
 
